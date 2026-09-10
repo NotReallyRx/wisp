@@ -13,7 +13,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.on("upgrade", (req, socket, head) => {
-    if (req.url.startsWith("/wisp")) {
+    if (req.url.startsWith("/w")) {
         try { wisp.routeRequest(req, socket, head); }
         catch (e) { console.error(e); socket.destroy(); }
         return;
