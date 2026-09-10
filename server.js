@@ -3,7 +3,7 @@ import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 
 const PORT = Number(process.env.PORT || 10000);
 const server = http.createServer((req, res) => {
-    if (req.url === "/" || req.url === "/h") {
+    if (req.url === "/" || req.url === "/health") {
         res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
         res.end(JSON.stringify({ status: "ok" }));
         return;
