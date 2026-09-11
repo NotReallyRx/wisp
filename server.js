@@ -2,32 +2,24 @@ import http from "node:http";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 
 const PORT = Number(process.env.PORT) || 9816;
-const HOST = process.env.HOST || "0.0.0.0";
+const HOST = "0.0.0.0";
 
-// Keep logging minimal.
+// Minimal Wisp logging.
 logging.set_level(logging.WARN);
 
-// ─────────────────────────────────────────────
-// Novalee Wisp — permissive configuration
-// ─────────────────────────────────────────────
-
-// Wisp v2, with backwards compatibility for v1.
+// Wisp v2 (also accepts v1 connections).
 wisp.options.wisp_version = 2;
 
 // No stream limits.
 wisp.options.stream_limit_per_host = undefined;
 wisp.options.stream_limit_total = undefined;
 
-// Allow all supported stream types.
+// Allow both stream types.
 wisp.options.allow_tcp_streams = true;
 wisp.options.allow_udp_streams = true;
 
-// Allow direct IP connections.
+// Permissive network configuration.
 wisp.options.allow_direct_ip = true;
-
-// Maximum network access.
-// WARNING: This allows access to private/internal networks
-// reachable by the server.
 wisp.options.allow_private_ips = true;
 wisp.options.allow_loopback_ips = true;
 
@@ -72,29 +64,19 @@ res.end(NOT_FOUND_RESPONSE);
 }
 );
 
-// Wisp WebSocket endpoint.
+// Handle Wisp WebSocket connections.
 server.on("upgrade", (req, socket, head) => {
-const url = req.url;
-
-// Accept Wisp only on /wisp/ and normalize the URL
-// before passing it to wisp-js.
-if (url === "/wisp/" || url?.startsWith("/wisp/?")) {
-req.url = "/wisp/";
-
-```
-try {
-  wisp.routeRequest(req, socket, head);
-} catch (error) {
-  console.error("Wisp error:", error);
-  socket.destroy();
-}
-
-return;
-```
-
-}
-
+if (!req.url?.startsWith("/wisp")) {
 socket.destroy();
+return;
+}
+
+try {
+wisp.routeRequest(req, socket, head);
+} catch (error) {
+console.error("Wisp upgrade error:", error);
+socket.destroy();
+}
 });
 
 server.on("error", (error) => {
@@ -103,15 +85,19 @@ console.error("Server error:", error);
 
 server.listen(PORT, HOST, () => {
 console.log(`Novalee Wisp listening on ${HOST}:${PORT}`);
-console.log(`Wisp endpoint: ws://${HOST}:${PORT}/wisp/`);
 });
 
+// Graceful shutdown.
 function shutdown(signal) {
 console.log(`${signal} received, shutting down...`);
 
-server.close(() => process.exit(0));
+server.close(() => {
+process.exit(0);
+});
 
-setTimeout(() => process.exit(1), 10_000).unref();
+setTimeout(() => {
+process.exit(1);
+}, 10_000).unref();
 }
 
 process.once("SIGINT", () => shutdown("SIGINT"));
